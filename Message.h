@@ -15,7 +15,7 @@ class Message {
 
         virtual std::string type() const = 0;
 
-        virtual void print() const;
+        virtual void print(std::ostream&) const;
 
         int getMessageID() const;
 
