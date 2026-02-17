@@ -4,9 +4,30 @@
 #include <fstream>
 #include <stdexcept>
 
+static const std::string USERS_FILE = "users.txt";
+static const std::string MESSAGES_FILE = "messages.txt";
 
+// ChatSystem::ChatSystem()
+//     : nextMessageID(1), timestamp(1) {}
 ChatSystem::ChatSystem()
-    : nextMessageID(1), timestamp(1) {}
+    : nextMessageID(1), timestamp(1) 
+{
+    // Load users if file exists
+    std::ifstream userCheck(USERS_FILE);
+    if (userCheck.good()) {
+        userCheck.close();
+        loadUsers(USERS_FILE);
+    }
+
+    // Load messages if file exists
+    std::ifstream msgCheck(MESSAGES_FILE);
+    if (msgCheck.good()) {
+        msgCheck.close();
+        loadMessages(MESSAGES_FILE);
+    }
+}
+
+
 
 ChatSystem::~ChatSystem() {}
 
@@ -15,6 +36,8 @@ bool ChatSystem::registerUser(const std::string& username) {
     if (users.find(username) != users.end()) return false;
 
     users[username] = std::make_unique<ChatUser>(username);
+
+    saveUsers(USERS_FILE);
     return true;
 }
 
@@ -52,6 +75,9 @@ void ChatSystem::sendMessage(const std::string& sender,
 
     messageLog.push_back(msg);
     itReceiver->second->receiveMessage(msg);
+
+    // save immediately
+    saveMessages(MESSAGES_FILE);
 
     std::cout << "Message sent.\n";
 }
@@ -104,5 +130,22 @@ void ChatSystem::saveMessages(const std::string& filename) const {
 
     for (const auto& msg : messageLog) {
         out << *msg << '\n';
+    }
+}
+
+void ChatSystem::loadMessages(const std::string& filename) {
+    std::ifstream in(filename);
+    if (!in) {
+        throw std::runtime_error("Could not open messages file for reading: " + filename);
+    }
+
+    // Write to ttxt file
+    std::string line;
+    while (std::getline(in, line)) {
+   
+        if (line.empty()) continue;
+
+      
+        std::cout << "[Loaded] " << line << '\n';
     }
 }
