@@ -1,7 +1,8 @@
 #include "ChatUser.h"
 
 ChatUser::ChatUser() : User() {}
-ChatUser::ChatUser(string u, string p) : User(u, p) {}
+
+ChatUser::ChatUser(const std::string& u) : User(u) {}
 
 ChatUser::~ChatUser() {
     for (Message* msg : inbox)
@@ -17,6 +18,7 @@ void ChatUser::viewMessages() const {
         cout << "No messages.\n";
         return;
     }
+
     for (const Message* msg : inbox)
         cout << *msg << endl;
 }

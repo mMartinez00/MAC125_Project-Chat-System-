@@ -8,19 +8,17 @@ using namespace std;
 class User {
 protected:
     string username;
-    string password;
 
 public:
-    User();
-    User(string u, string p);
-    virtual ~User();
+    User();//default constructor
+    User(string u);//paramatized constructor
+    virtual ~User();//Destruct runs
 
     string getUsername() const;
-    bool checkPassword(const string& p) const;
 
     virtual void displayProfile() const;
 
-    bool operator==(const User& other) const;
+    bool operator==(const User& other) const;//operator overloading to compare username
     friend ostream& operator<<(ostream& out, const User& user);
 };
 

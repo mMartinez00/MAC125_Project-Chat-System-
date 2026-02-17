@@ -1,23 +1,25 @@
-#ifndef CHATUSER_H
-#define CHATUSER_H
+#ifndef USER_H
+#define USER_H
 
-#include "User.h"
-#include "Message.h"
-#include <vector>
+#include <string>
+#include <iostream>
+using namespace std;
 
-class ChatUser : public User {
-private:
-    vector<Message*> inbox;
+class User {
+protected:
+    string username;
 
 public:
-    ChatUser();
-    ChatUser(string u, string p);
-    ~ChatUser();
+    User();//default constructor
+    User(string u);//paramatized constructor
+    virtual ~User();//Destruct runs
 
-    void receiveMessage(Message* msg);
-    void viewMessages() const;
+    string getUsername() const;
 
-    void displayProfile() const override;
+    virtual void displayProfile() const;
+
+    bool operator==(const User& other) const;//operator overloading to compare username
+    friend ostream& operator<<(ostream& out, const User& user);
 };
 
 #endif

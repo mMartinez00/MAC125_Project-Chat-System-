@@ -1,15 +1,13 @@
 #include "User.h"
 
-User::User() : username(""), password("") {}
-User::User(string u, string p) : username(u), password(p) {}
+User::User() : username("") {}
+
+User::User(string u) : username(u) {}
+
 User::~User() {}
 
 string User::getUsername() const {
     return username;
-}
-
-bool User::checkPassword(const string& p) const {
-    return password == p;
 }
 
 void User::displayProfile() const {
