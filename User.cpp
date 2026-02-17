@@ -2,7 +2,7 @@
 
 User::User() : username("") {}
 
-User::User(string u) : username(u) {}
+User::User(const std::string& u) : username(u) {}
 
 User::~User() {}
 

@@ -11,7 +11,7 @@ protected:
 
 public:
     User();//default constructor
-    User(string u);//paramatized constructor
+    User(const string& u);//paramatized constructor
     virtual ~User();//Destruct runs
 
     string getUsername() const;

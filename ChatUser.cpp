@@ -1,28 +1,28 @@
 #include "ChatUser.h"
+#include "Message.h"
+#include <iostream>
 
 ChatUser::ChatUser() : User() {}
 
 ChatUser::ChatUser(const std::string& u) : User(u) {}
 
-ChatUser::~ChatUser() {
-    for (Message* msg : inbox)
-        delete msg;
-}
+ChatUser::~ChatUser() {}
 
-void ChatUser::receiveMessage(Message* msg) {
+void ChatUser::receiveMessage(const std::shared_ptr<Message>& msg) {
     inbox.push_back(msg);
 }
 
 void ChatUser::viewMessages() const {
     if (inbox.empty()) {
-        cout << "No messages.\n";
+        std::cout << "No messages.\n";
         return;
     }
 
-    for (const Message* msg : inbox)
-        cout << *msg << endl;
+    for (const auto& msg : inbox) {
+        std::cout << *msg << '\n';
+    }
 }
 
 void ChatUser::displayProfile() const {
-    cout << "Chat User: " << username << endl;
+    std::cout << "Chat User: " << username << '\n';
 }
