@@ -5,6 +5,10 @@ Message::Message(int mID, int sID, int ts, const std::string& c) : messageID(mID
 
 Message::~Message(){}
 
+std::string Message::type() const {
+    return "TEXT";
+}
+
 void Message::print(std::ostream& os) const {
     os << "[ID: " << messageID << " | Sender: " << senderID << " | Time: " << timestamp << "]" << " " << content;
 }

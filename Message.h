@@ -13,7 +13,7 @@ class Message {
     public:
         Message(int mID, int sID, int ts, const std::string& c);
 
-        virtual std::string type() const = 0;
+        virtual std::string type() const;
 
         virtual void print(std::ostream&) const;
 

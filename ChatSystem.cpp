@@ -1,95 +1,133 @@
 #include "ChatSystem.h"
+#include "TextMessage.h"
 #include "Message.h"
+
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <sstream>
+
+namespace {
+    // Simple escaping so content can include tabs/newlines.
+    std::string escape(const std::string& s) {
+        std::string out;
+        out.reserve(s.size());
+        for (char ch : s) {
+            if (ch == '\\') out += "\\\\";
+            else if (ch == '\t') out += "\\t";
+            else if (ch == '\n') out += "\\n";
+            else out += ch;
+        }
+        return out;
+    }
+
+    std::string unescape(const std::string& s) {
+        std::string out;
+        out.reserve(s.size());
+        for (size_t i = 0; i < s.size(); ++i) {
+            if (s[i] == '\\' && i + 1 < s.size()) {
+                char n = s[i + 1];
+                if (n == '\\') { out += '\\'; ++i; }
+                else if (n == 't') { out += '\t'; ++i; }
+                else if (n == 'n') { out += '\n'; ++i; }
+                else out += s[i]; // leave unknown escape as-is
+            } else {
+                out += s[i];
+            }
+        }
+        return out;
+    }
+}
 
 ChatSystem::ChatSystem()
-    : userASet(false),
-      userBSet(false),
-      nextMessageID(1),
-      timestamp(1) {}
+    : nextMessageID(1), timestamp(1) {}
 
 ChatSystem::~ChatSystem() {}
 
-// User setup
+bool ChatSystem::registerUser(const std::string& username) {
+    if (username.empty()) return false;
+    if (users.find(username) != users.end()) return false;
 
-void ChatSystem::setUserA(const std::string& username) {
-    if (username.empty()) {
-        throw std::invalid_argument("User A username cannot be empty.");
-    }
-
-    userA = ChatUser(username);
-    userASet = true;
+    users[username] = std::make_unique<ChatUser>(username);
+    return true;
 }
 
-void ChatSystem::setUserB(const std::string& username) {
-    if (username.empty()) {
-        throw std::invalid_argument("User B username cannot be empty.");
-    }
-
-    if (userASet && username == userA.getUsername()) {
-        throw std::invalid_argument("User B cannot have the same username as User A.");
-    }
-
-    userB = ChatUser(username);
-    userBSet = true;
+bool ChatSystem::login(const std::string& username) const {
+    return users.find(username) != users.end();
 }
 
-bool ChatSystem::bothUsersReady() const {
-    return userASet && userBSet;
-}
-
-// Print
-
-void ChatSystem::printAllMessages() const {
-    if (messages.empty()) {
-        std::cout << "No messages.\n";
-        return;
+void ChatSystem::sendMessage(const std::string& sender,
+                             const std::string& receiver,
+                             const std::string& content) {
+    if (sender.empty() || receiver.empty()) {
+        throw std::invalid_argument("Sender/receiver cannot be empty.");
+    }
+    if (content.empty()) {
+        throw std::invalid_argument("Message content cannot be empty.");
     }
 
-    for (const auto& msg : messages) {
-        std::cout << *msg << std::endl; // operator<< from Message
+    auto itSender = users.find(sender);
+    auto itReceiver = users.find(receiver);
+
+    if (itSender == users.end()) {
+        throw std::runtime_error("Sender not registered: " + sender);
     }
+    if (itReceiver == users.end()) {
+        throw std::runtime_error("Receiver not registered: " + receiver);
+    }
+
+    auto msg = std::make_shared<TextMessage>(
+        nextMessageID++,
+        sender,
+        receiver,
+        timestamp++,
+        content
+    );
+
+    messageLog.push_back(msg);
+    itReceiver->second->receiveMessage(msg);
+
+    std::cout << "Message sent.\n";
 }
 
-// Users I/O
+void ChatSystem::viewInbox(const std::string& username) const {
+    auto it = users.find(username);
+    if (it == users.end()) {
+        throw std::runtime_error("User not found: " + username);
+    }
+    it->second->viewMessages();
+}
+
+// ---------- Users I/O (one username per line) ----------
 
 void ChatSystem::loadUsers(const std::string& filename) {
     std::ifstream in(filename);
     if (!in) {
-        throw std::runtime_error("Could not open users file for reading: " + filename);
+        throw std::runtime_error("Could not open users file: " + filename);
     }
 
-    std::string usernameA;
-    std::string usernameB;
-
-    std::getline(in, usernameA);
-    std::getline(in, usernameB);
-
-    if (usernameA.empty() || usernameB.empty()) {
-        throw std::runtime_error("Invalid users file format (need 2 lines).");
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty()) {
+            registerUser(line); // ignores duplicates
+        }
     }
-
-    setUserA(usernameA);
-    setUserB(usernameB);
 }
 
 void ChatSystem::saveUsers(const std::string& filename) const {
-    if (!bothUsersReady()) {
-        throw std::runtime_error("Both users must be set before saving users.");
-    }
-
     std::ofstream out(filename);
     if (!out) {
         throw std::runtime_error("Could not open users file for writing: " + filename);
     }
 
-    out << userA.getUsername() << '\n';
-    out << userB.getUsername() << '\n';
+    for (const auto& pair : users) {
+        out << pair.first << '\n';
+    }
 }
 
-// Messages I/O (simple log)
+// ---------- Messages I/O (tab-delimited) ----------
+// Format per line:
+// messageID \t timestamp \t sender \t receiver \t type \t escaped_content
 
 void ChatSystem::saveMessages(const std::string& filename) const {
     std::ofstream out(filename);
@@ -97,27 +135,60 @@ void ChatSystem::saveMessages(const std::string& filename) const {
         throw std::runtime_error("Could not open messages file for writing: " + filename);
     }
 
-    if (messages.empty()) {
-        out << "No messages.\n";
-        return;
-    }
-
-    for (const auto& msg : messages) {
-        out << *msg << '\n'; // uses Message::operator<<
+    for (const auto& msg : messageLog) {
+        out << msg->getMessageID() << '\t'
+            << msg->getTimestamp() << '\t'
+            << msg->getSender() << '\t'
+            << msg->getReceiver() << '\t'
+            << msg->type() << '\t'
+            << escape(msg->getContent()) << '\n';
     }
 }
 
 void ChatSystem::loadMessages(const std::string& filename) {
     std::ifstream in(filename);
     if (!in) {
-        throw std::runtime_error("Could not open messages file for reading: " + filename);
+        throw std::runtime_error("Could not open messages file: " + filename);
     }
 
-    // Since you're keeping it simple and not reconstructing objects:
-    messages.clear();
+    messageLog.clear();
 
     std::string line;
     while (std::getline(in, line)) {
-        std::cout << line << '\n';
+        if (line.empty()) continue;
+
+        std::istringstream ss(line);
+
+        int id = 0;
+        int ts = 0;
+        std::string sender, receiver, type, escContent;
+
+        if (!(ss >> id)) continue;
+        if (ss.get() != '\t') continue;
+
+        if (!(ss >> ts)) continue;
+        if (ss.get() != '\t') continue;
+
+        if (!std::getline(ss, sender, '\t')) continue;
+        if (!std::getline(ss, receiver, '\t')) continue;
+        if (!std::getline(ss, type, '\t')) continue;
+        if (!std::getline(ss, escContent)) escContent = "";
+
+        std::string content = unescape(escContent);
+
+        // Ensure users exist so inbox delivery is possible
+        registerUser(sender);
+        registerUser(receiver);
+
+        // Rebuild message object (only TEXT supported here)
+        auto msg = std::make_shared<TextMessage>(id, sender, receiver, ts, content);
+        messageLog.push_back(msg);
+
+        // deliver to receiver inbox (like “replaying” the log)
+        users[receiver]->receiveMessage(msg);
+
+        // keep counters sane
+        if (id >= nextMessageID) nextMessageID = id + 1;
+        if (ts >= timestamp) timestamp = ts + 1;
     }
 }
