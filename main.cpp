@@ -1,12 +1,25 @@
 #include <iostream>
 #include <string>
+#include <exception>
 #include "ChatSystem.h"
 
 using namespace std;
 
+static void clearBadInput() {
+    cin.clear();
+    cin.ignore(10000, '\n');
+}
+
 int main() {
 
     ChatSystem system;
+
+    try {
+        system.loadUsers("users.txt");
+    } catch (const exception& e) {
+        cout << "No existing users file found.\n";
+    }
+    
     int choice;
 
     while (true) {
@@ -15,8 +28,16 @@ int main() {
         cout << "1. Register\n";
         cout << "2. Login\n";
         cout << "3. Exit\n";
+        cout << "4. Load & Display Users\n";
         cout << "Choice: ";
+
         cin >> choice;
+
+        if(cin.fail()) {
+            clearBadInput();
+            cout << "Invalid input. Please enter a number.\n";
+            continue;
+        }
 
         if (choice == 1) {
 
@@ -39,6 +60,13 @@ int main() {
             if (system.login(username)) {
 
                 cout << "Login successful!\n";
+
+                try {
+                    system.displayUserProfile(username);
+                } catch (const exception& e) {
+                    cout << "Error: " << e.what() << '\n';
+                }
+
 
                 while (true) {
 
@@ -81,8 +109,27 @@ int main() {
         }
 
         else if (choice == 3) {
+            try {
+                system.saveUsers("users.txt");
+                system.saveMessages("messages.txt");
+                cout << "Data saved successfully.\n";
+            } catch(const exception& e) {
+                cout << "Error saving data: " << e.what() << "\n";
+            }
+
             cout << "Exiting program...\n";
             break;
+        }
+
+        else if (choice == 4) {
+            try {
+                system.loadUsers("users.txt");
+                system.printUsers();
+            } catch (const exception& e) {
+                cout << "Error: " << e.what() << '\n';
+            } 
+        } else {
+            cout << "Invalid opttion. Choose 1-4.\n";
         }
     }
 

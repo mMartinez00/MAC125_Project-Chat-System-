@@ -7,8 +7,6 @@
 static const std::string USERS_FILE = "users.txt";
 static const std::string MESSAGES_FILE = "messages.txt";
 
-// ChatSystem::ChatSystem()
-//     : nextMessageID(1), timestamp(1) {}
 ChatSystem::ChatSystem()
     : nextMessageID(1), timestamp(1) 
 {
@@ -37,7 +35,6 @@ bool ChatSystem::registerUser(const std::string& username) {
 
     users[username] = std::make_unique<ChatUser>(username);
 
-    saveUsers(USERS_FILE);
     return true;
 }
 
@@ -76,8 +73,6 @@ void ChatSystem::sendMessage(const std::string& sender,
     messageLog.push_back(msg);
     itReceiver->second->receiveMessage(msg);
 
-    // save immediately
-    saveMessages(MESSAGES_FILE);
 
     std::cout << "Message sent.\n";
 }
@@ -101,10 +96,33 @@ void ChatSystem::loadUsers(const std::string& filename) {
     std::string name;
     while (std::getline(in, name)) {
         if (!name.empty()) {
-            registerUser(name); // ignores duplicates
+            registerUser(name); // ignores duplicates, no saving while loading
         }
     }
 }
+
+void ChatSystem::printUsers() const {
+    if (users.empty()) {
+        std::cout << "No registered users.\n";
+        return;
+    }
+
+    std::cout << "\n--- Registered Users ---\n";
+    for(const auto& pair : users) {
+        std::cout << "- " << *(pair.second) << '\n';
+    }
+}
+
+void ChatSystem::displayUserProfile(const std::string& username) const {
+    auto it = users.find(username);
+    if (it == users.end()) {
+        throw std::runtime_error("User not found: " + username);
+    }
+
+    // calling virtual function
+    it->second->displayProfile();
+}
+
 
 void ChatSystem::saveUsers(const std::string& filename) const {
     std::ofstream out(filename);

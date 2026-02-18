@@ -21,7 +21,7 @@ public:
     ChatSystem();
     ~ChatSystem();
 
-    // main.cpp expects these:
+    // main.cpp
     bool registerUser(const std::string& username);
     bool login(const std::string& username) const;
 
@@ -30,6 +30,8 @@ public:
                      const std::string& content);
 
     void viewInbox(const std::string& username) const;
+    void printUsers() const;
+    void displayUserProfile(const std::string& username) const;
 
     // optional file I/O helpers (simple formats)
     void loadUsers(const std::string& filename);
